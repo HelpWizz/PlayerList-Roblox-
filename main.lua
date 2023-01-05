@@ -1,4 +1,4 @@
---> made by symple
+--> made by me symple(Discord)/HelpWizz(GitHub)
 
 local LeaderBoard = {}
 local Teams = game:GetService("Teams")

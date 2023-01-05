@@ -137,10 +137,11 @@ end
 
 
 LeaderBoard:AddTeams(script.Parent.PlayerGui.Container.ScrollingFrame)
-
+local FirstPlayerJoined = false
 
 --> prob not the best way to do this
 game.Players.PlayerAdded:Connect(function(player)
+	FirstPlayerJoined = true
 	local list = {}
 	for i, players in game:GetService("Players"):GetPlayers() do
 		if players.Name ~= player.Name then
@@ -162,5 +163,16 @@ game.Players.PlayerRemoving:Connect(function(player)
 	end
 	LeaderBoard:RemovePlayer(player, list)
 end)
+
+--> when server is created (first player to join) check if the player added event ran if not do the player list stuff 	manually
+if not FirstPlayerJoined then
+	spawn(function()
+		for _, player in game.Players:GetPlayers() do
+			while player.Neutral == true do task.wait(1) end
+			LeaderBoard:AddPlayer(player, script.Parent:WaitForChild("PlayerGui").Container.ScrollingFrame)
+			script.Parent.PlayerGui:Clone().Parent = player.PlayerGui
+		end
+	end)
+end
 
 return LeaderBoard

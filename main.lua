@@ -188,10 +188,10 @@ game.Players.PlayerAdded:Connect(function(player)
 			table.insert(list, players)
 		end
 	end
-	LeaderBoard:AddPlayerTOExistingClient(player, list)
 	while player.Neutral == true do task.wait(1) end
 	LeaderBoard:AddPlayer(player, script.Parent:WaitForChild("Playerlist").Container.ScrollingFrame)
 	script.Parent.Playerlist:Clone().Parent = player.PlayerGui
+	LeaderBoard:AddPlayerTOExistingClient(player, list)
 	
 	--> KOS stuff
 	player.CharacterAdded:Connect(function(Character)

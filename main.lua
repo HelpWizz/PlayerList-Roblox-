@@ -122,6 +122,15 @@ function LeaderBoard:AddKOs(player: Player) : number
 			continue
 		end
 	end
+	
+	local scrollingFrame = script.Parent:WaitForChild("Playerlist").Container.ScrollingFrame
+	if scrollingFrame:FindFirstChild(player.Name) then
+		local textLabel = scrollingFrame:FindFirstChild(player.Name)
+		local currentKosValue = tonumber(textLabel.KOsValue.Text)
+		local newCurrentKosValue = currentKosValue + 1
+
+		textLabel.KOsValue.Text = newCurrentKosValue
+	end
 	return 1
 end
 

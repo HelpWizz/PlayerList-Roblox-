@@ -1,8 +1,7 @@
---> made by me symple(Discord)/HelpWizz(GitHub)
+--> made by symple
 
 local LeaderBoard = {}
 local Teams = game:GetService("Teams")
-
 
 function LeaderBoard:AddTeams(scrollingFrame)
 	--> get all teams from game 
@@ -26,6 +25,17 @@ function LeaderBoard:AddTeams(scrollingFrame)
 			
 			clone.LayoutOrder = globalLayoutOrder
 			
+			local hideStatus = true
+			for i, v in pairs(game:GetService("Players"):GetPlayers()) do
+				if v.Team == TeamInstance then
+					hideStatus = false
+				end
+			end
+			if hideStatus  and scrollingFrame.Parent.hideTeam.Value == true then
+				scrollingFrame:FindFirstChild(TeamName).Visible = false
+			else
+				scrollingFrame:FindFirstChild(TeamName).Visible = true
+			end
 		end
 	end
 	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, scrollingFrame.UIListLayout.AbsoluteContentSize.Y)
@@ -56,7 +66,7 @@ end
 function LeaderBoard:AddPlayerTOExistingClient(client: Player, List: {table})
 	if #List == 0 then return end
 	for number, selectedPlayer: Player in pairs(List) do
-		local scrollingFrame = selectedPlayer.PlayerGui:WaitForChild("PlayerGui").Container.ScrollingFrame
+		local scrollingFrame = selectedPlayer.PlayerGui:WaitForChild("Playerlist").Container.ScrollingFrame
 		if not scrollingFrame:FindFirstChild(client.Name) then
 			local Clone = script:WaitForChild("Player"):Clone()
 
@@ -85,22 +95,50 @@ function LeaderBoard:UpdateTeam(Team: Team, Name, scrollingFrame)
 		TeamFrame.teamName.Text = Team.Name
 		TeamFrame.BackgroundColor3 = Team.TeamColor.Color
 		
+		local hideStatus = true
+		for i, v in pairs(game:GetService("Players"):GetPlayers()) do
+			if v.Team == Team then
+				hideStatus = false
+			end
+		end
+		if hideStatus  and scrollingFrame.Parent.hideTeam.Value == true then
+			scrollingFrame:FindFirstChild(Name).Visible = false
+		else
+			scrollingFrame:FindFirstChild(Name).Visible = true
+		end
 	end
 end
 
+function LeaderBoard:AddKOs(player: Player) : number
+	for i, client in pairs(game:GetService("Players"):GetPlayers()) do
+		local scrollingFrame = client.PlayerGui:WaitForChild("Playerlist").Container.ScrollingFrame
+		if scrollingFrame:FindFirstChild(player.Name) then
+			local textLabel = scrollingFrame:FindFirstChild(player.Name)
+			local currentKosValue = tonumber(textLabel.KOsValue.Text)
+			local newCurrentKosValue = currentKosValue + 1
+			
+			textLabel.KOsValue.Text = newCurrentKosValue
+		else
+			continue
+		end
+	end
+	return 1
+end
 
 function LeaderBoard:RemovePlayer(Player: Player, List)
-	local OrginscrollingFrame = script.Parent.PlayerGui.Container.ScrollingFrame  
+	local OrginscrollingFrame = script.Parent.Playerlist.Container.ScrollingFrame  
 	if OrginscrollingFrame:FindFirstChild(Player.Name) then OrginscrollingFrame:FindFirstChild(Player.Name):Destroy() end
 	if #List == 0 then return end
 	for number, selectedPlayer: Player in pairs(List) do
-		local scrollingFrame = selectedPlayer.PlayerGui:WaitForChild("PlayerGui").Container.ScrollingFrame
+		local scrollingFrame = selectedPlayer.PlayerGui:WaitForChild("Playerlist").Container.ScrollingFrame
 		if scrollingFrame:FindFirstChild(Player.Name) then
 			scrollingFrame:FindFirstChild(Player.Name):Destroy()
 			scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, scrollingFrame.UIListLayout.AbsoluteContentSize.Y)
+			LeaderBoard:UpdateTeam(Player.Team, Player.Team.Name, scrollingFrame)
 		end
 	end
 	OrginscrollingFrame.CanvasSize = UDim2.new(0, 0, 0, OrginscrollingFrame.UIListLayout.AbsoluteContentSize.Y)
+	LeaderBoard:UpdateTeam(Player.Team, Player.Team.Name, OrginscrollingFrame)
 end
 
 function LeaderBoard:GetRankAndDivision(Player: Player)
@@ -109,7 +147,7 @@ function LeaderBoard:GetRankAndDivision(Player: Player)
 	local rankTable = config.RankInfo
 	local shortName
 	for _, ranks in ipairs(rankTable) do
-		if Player:GetRankInGroup(config.MainId) == ranks["GroupRank"] then
+		if Player:GetRankInGroup(config.MainId) == ranks["ID"] then
 			shortName  = ranks["ShortName"]break
 		end
 		if not Player:IsInGroup(config.MainId) then
@@ -121,10 +159,14 @@ function LeaderBoard:GetRankAndDivision(Player: Player)
 	--> Division
 	local regTable = config.RegInfo
 	local regShortName
-	for _, regs in ipairs(regTable) do
-		if Player:IsInGroup(regs["GroupID"]) then
+	for count, regs in ipairs(regTable) do
+		if Player:IsInGroup(regs["ID"]) then
 			regShortName = regs["ShortName"]
 			break
+		end
+		if count ==  11 and not Player:IsInGroup(regs["ID"]) then 
+			regShortName = "CIV" 
+			break 
 		end
 		if not Player:IsInGroup(config.MainId) then
 			regShortName = "CIV"
@@ -136,12 +178,10 @@ end
 
 
 
-LeaderBoard:AddTeams(script.Parent.PlayerGui.Container.ScrollingFrame)
-local FirstPlayerJoined = false
+LeaderBoard:AddTeams(script.Parent.Playerlist.Container.ScrollingFrame)
 
 --> prob not the best way to do this
 game.Players.PlayerAdded:Connect(function(player)
-	FirstPlayerJoined = true
 	local list = {}
 	for i, players in game:GetService("Players"):GetPlayers() do
 		if players.Name ~= player.Name then
@@ -150,8 +190,18 @@ game.Players.PlayerAdded:Connect(function(player)
 	end
 	LeaderBoard:AddPlayerTOExistingClient(player, list)
 	while player.Neutral == true do task.wait(1) end
-	LeaderBoard:AddPlayer(player, script.Parent:WaitForChild("PlayerGui").Container.ScrollingFrame)
-	script.Parent.PlayerGui:Clone().Parent = player.PlayerGui
+	LeaderBoard:AddPlayer(player, script.Parent:WaitForChild("Playerlist").Container.ScrollingFrame)
+	script.Parent.Playerlist:Clone().Parent = player.PlayerGui
+	
+	--> KOS stuff
+	player.CharacterAdded:Connect(function(Character)
+		Character.Humanoid.Died:Connect(function(Died)
+			local creator = Character.Humanoid:FindFirstChild("creator")
+			if creator ~= nil and creator.Value ~= nil then
+				LeaderBoard:AddKOs(game:GetService("Players")[tostring(creator.Value)])
+			end
+		end)
+	end)
 end)
 
 game.Players.PlayerRemoving:Connect(function(player)
@@ -164,16 +214,4 @@ game.Players.PlayerRemoving:Connect(function(player)
 	LeaderBoard:RemovePlayer(player, list)
 end)
 
---> when server is created (first player to join) check if the player added event ran if not do the player list stuff 	manually
-if not FirstPlayerJoined then
-	spawn(function()
-		for _, player in game.Players:GetPlayers() do
-			while player.Neutral == true do task.wait(1) end
-			LeaderBoard:AddPlayer(player, script.Parent:WaitForChild("PlayerGui").Container.ScrollingFrame)
-			script.Parent.PlayerGui:Clone().Parent = player.PlayerGui
-		end
-	end)
-end
-
 return LeaderBoard
---> all done
